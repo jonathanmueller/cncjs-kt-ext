@@ -270,22 +270,27 @@ module.exports = class Autolevel {
     this.planedPointCount++
 
     let y = ymin - dy
+    let dirForward = true;
 
     while (y < ymax - 0.01) {
       y += dy
       if (y > ymax) y = ymax
-      let x = xmin - dx
-      if (y <= ymin + 0.01) x = xmin // don't probe first point twice
+      let x = dirForward ? xmin - dx : xmax + dx;
+      if (y <= ymin + 0.01) x = dirForward ? xmin : xmax // don't probe first point twice
 
-      while (x < xmax - 0.01) {
-        x += dx
-        if (x > xmax) x = xmax
+      while (dirForward ? (x < xmax - 0.01) : (x > xmin + 0.01)) {
+        x += dirForward ? dx : -dx;
+        if (x > xmax) x = xmax;
+        if (x < xmin) x = xmin;
+
         code.push(`(AL: probing point ${this.planedPointCount + 1})`)
         code.push(`G90 G0 X${x.toFixed(3)} Y${y.toFixed(3)} Z${this.height}`)
         code.push(`G38.2 Z-${this.height + 1} F${this.feed}`)
         code.push(`G0 Z${this.height}`)
         this.planedPointCount++
       }
+
+      dirForward = !dirForward;
     }
     this.sckw.sendGcode(code.join('\n'))
   }
